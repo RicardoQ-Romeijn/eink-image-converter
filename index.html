@@ -244,10 +244,9 @@
 </main>
 
 <script>
-(() => {
-  // Current working resolution (mutated when the display preset or portrait
-  // toggle change).
-  let W = 800, H = 480;
+// Current working resolution (mutated when the display preset or portrait
+// toggle change).
+let W = 800, H = 480;
 
   // Terminus (TRMNL) 1-bit BMP has fixed size at 800×480.
   const TRMNL_W = 800, TRMNL_H = 480;
@@ -2037,12 +2036,11 @@
     }
   });
 
-  // Restore persisted settings, sync UI controls, then render.
-  loadSettings();
-  syncControlsFromGlobals();
-  applyDisplay();
-  syncHistoryButtons();
-})();
+// Restore persisted settings, sync UI controls, then render.
+loadSettings();
+syncControlsFromGlobals();
+applyDisplay();
+syncHistoryButtons();
 </script>
 
 </body>
