@@ -527,3 +527,56 @@ canvas#preview.panning { cursor: grabbing; }
   .dropzone .desktop-copy { display: none; }
   .dropzone .mobile-copy  { display: block; }
 }
+
+/* ==== Send-to-TRMNL upload modal ====================================
+   Only used when the converter is served from the same origin as Terminus
+   (e.g. trmnl.bamlab.nl/converter/). On file:// the trigger button is
+   hidden by ui-trmnl-upload.js so the modal is unreachable. */
+.trmnl-modal {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1000;
+  padding: 1em;
+}
+.trmnl-modal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 1.4em 1.6em 1.2em;
+  width: min(440px, 100%);
+  display: flex; flex-direction: column;
+  gap: 0.8em;
+}
+.trmnl-modal-card h2 {
+  font-size: 1em; font-weight: 600;
+  margin: 0;
+  color: var(--text);
+}
+.trmnl-modal-row {
+  display: grid;
+  grid-template-columns: 5em 1fr;
+  gap: 0.6em;
+  align-items: center;
+  margin: 0;
+}
+.trmnl-modal-row > span {
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+.trmnl-modal-row input,
+.trmnl-modal-row select { width: 100%; }
+.trmnl-modal-status {
+  font-size: 0.85em;
+  font-family: ui-monospace, Menlo, monospace;
+  min-height: 1.2em;
+  color: var(--text-muted);
+}
+.trmnl-modal-status--ok  { color: var(--ok); }
+.trmnl-modal-status--err { color: var(--err); }
+.trmnl-modal-status--info { color: var(--text-muted); }
+.trmnl-modal-actions {
+  display: flex; justify-content: flex-end; gap: 0.4em;
+  margin-top: 0.2em;
+}

@@ -48,6 +48,10 @@
   <div class="appbar-actions">
     <button id="undoBtn" class="iconbtn" title="Undo (Ctrl/Cmd-Z)" disabled>↶</button>
     <button id="redoBtn" class="iconbtn" title="Redo (Ctrl/Cmd-Shift-Z)" disabled>↷</button>
+    <!-- Hidden by default; ui-trmnl-upload.js unhides on http(s) origins
+         where same-origin cookie auth + /screens/new can actually work. -->
+    <button id="sendToTrmnlBtn" class="hidden" type="button" disabled
+            title="Upload current BMP to TRMNL as a new screen">↗ Send to TRMNL</button>
     <button id="download" class="primary" disabled>Export .bmp</button>
   </div>
 </header>
@@ -243,6 +247,32 @@
 
 </main>
 
+<!-- "Send to TRMNL" upload modal. ui-trmnl-upload.js fetches /screens/new
+     same-origin to scrape the CSRF token and the model dropdown, then POSTs
+     a multipart/form-data create to /screens. -->
+<div id="trmnlModal" class="trmnl-modal hidden" role="dialog" aria-modal="true" aria-labelledby="trmnlModalTitle">
+  <div class="trmnl-modal-card">
+    <h2 id="trmnlModalTitle">Send to TRMNL</h2>
+    <label class="trmnl-modal-row">
+      <span>Label</span>
+      <input type="text" id="trmnlLabel" autocomplete="off">
+    </label>
+    <label class="trmnl-modal-row">
+      <span>Name</span>
+      <input type="text" id="trmnlName" autocomplete="off">
+    </label>
+    <label class="trmnl-modal-row">
+      <span>Model</span>
+      <select id="trmnlModelId"></select>
+    </label>
+    <div id="trmnlStatus" class="trmnl-modal-status"></div>
+    <div class="trmnl-modal-actions">
+      <button id="trmnlCancelBtn" type="button">Close</button>
+      <button id="trmnlUploadBtn" type="button" class="primary" disabled>Upload</button>
+    </div>
+  </div>
+</div>
+
 <!-- Order is dependency-driven. All scripts are classic + defer, so they
      execute in document order after parse and share the realm's global
      lexical environment — top-level let/const/function declarations from
@@ -263,6 +293,7 @@
 <script defer src="src/ui-canvas.js"></script>
 <script defer src="src/ui-files.js"></script>
 <script defer src="src/ui-keyboard.js"></script>
+<script defer src="src/ui-trmnl-upload.js"></script>
 <script defer src="src/main.js"></script>
 
 </body>
