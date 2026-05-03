@@ -7,10 +7,23 @@
 //
 // Both requests rely on the terminus.session cookie, which the browser only
 // attaches automatically when the converter is served from the same origin
-// as Terminus (e.g. trmnl.bamlab.nl/converter/). On file:// the cookie isn't
-// sent and the request would 401, so we hide the button entirely there.
+// as Terminus (e.g. trmnl.bamlab.nl/converter/). Anywhere else — file://, the
+// GitHub Pages preview, any unrelated host — /screens/new doesn't exist and
+// clicking the button would be a confusing dead end. We only show it when:
+//
+//   1. the page is being served over http/https (cookies can ride), AND
+//   2. the path is mounted under /converter/ (matches the deployment doc;
+//      excludes /eink-image-converter/ on github.io and any other prefix).
+//
+// If you ever mount the converter at a different path, change the regex
+// below — or easier, host it under /converter/ on whichever Terminus origin
+// you're using.
 
-if (location.protocol !== 'file:') {
+const TRMNL_UPLOAD_ENABLED =
+  location.protocol !== 'file:' &&
+  /^\/converter(\/|$)/.test(location.pathname);
+
+if (TRMNL_UPLOAD_ENABLED) {
   const STORAGE_KEY = 'trmnl_upload_v1';
   // Form data scraped from /screens/new — { csrfToken, models: [{id,label}] }.
   // Re-fetched after each successful upload because some Hanami CSRF tokens
