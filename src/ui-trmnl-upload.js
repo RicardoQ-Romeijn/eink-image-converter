@@ -160,7 +160,7 @@ if (TRMNL_UPLOAD_ENABLED) {
   }
 
   // Submit the multipart form once. Returns one of:
-  //   { kind: 'ok', finalUrl }       — Hanami redirected after insert.
+  //   { kind: 'ok' }                 — screen created.
   //   { kind: 'duplicate' }          — likely (model_id, name) collision (HTTP 500).
   //   { kind: 'rejected', message }  — form re-rendered with validation errors.
   //   throws                         — network/transport failure.
@@ -181,8 +181,8 @@ if (TRMNL_UPLOAD_ENABLED) {
 
     // Terminus has a UNIQUE INDEX on (model_id, name). Re-uploading with the
     // same name 500s with a PG::UniqueViolation rather than re-rendering the
-    // form. Treat 500 as "probably a duplicate name" — the caller will retry
-    // with a numeric suffix.
+    // form. Treat 500 as "probably a duplicate name" — the caller retries with
+    // a numeric suffix.
     if (r.status === 500) return { kind: 'duplicate' };
 
     if (!r.ok) {
@@ -190,13 +190,18 @@ if (TRMNL_UPLOAD_ENABLED) {
       throw new Error(`HTTP ${r.status}: ${body.slice(0, 200) || r.statusText}`);
     }
 
-    // Standard post/redirect/get on success; no redirect = form re-rendered
-    // with validation errors.
-    if (!r.redirected) {
-      const html = await r.text().catch(() => '');
+    // Terminus's POST /screens returns 200 in BOTH outcomes — no redirect:
+    //   - success → renders the screens index template (the listing)
+    //   - validation failure → renders the new-screen form template inline
+    // r.redirected is therefore useless here. The form re-render is the only
+    // page in this flow that contains <input name="screen[image]">; the index
+    // page doesn't have any upload form. That's our success/failure signal.
+    const html = await r.text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    if (doc.querySelector('input[name="screen[image]"]')) {
       return { kind: 'rejected', message: extractFormError(html) };
     }
-    return { kind: 'ok', finalUrl: r.url };
+    return { kind: 'ok' };
   }
 
   async function doUpload() {
