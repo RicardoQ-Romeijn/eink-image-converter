@@ -159,6 +159,46 @@ if (TRMNL_UPLOAD_ENABLED) {
     els.modal.classList.add('hidden');
   }
 
+  // Submit the multipart form once. Returns one of:
+  //   { kind: 'ok', finalUrl }       — Hanami redirected after insert.
+  //   { kind: 'duplicate' }          — likely (model_id, name) collision (HTTP 500).
+  //   { kind: 'rejected', message }  — form re-rendered with validation errors.
+  //   throws                         — network/transport failure.
+  async function postScreen({ label, name, modelId }) {
+    const fd = new FormData();
+    fd.append('_csrf_token', formCache.csrfToken);
+    fd.append('screen[label]', label);
+    fd.append('screen[name]', name);
+    fd.append('screen[model_id]', modelId);
+    fd.append('screen[image]', bmpBlob, safeFilename(name));
+
+    const r = await fetch('/screens', {
+      method: 'POST',
+      body: fd,
+      credentials: 'include',
+      redirect: 'follow',
+    });
+
+    // Terminus has a UNIQUE INDEX on (model_id, name). Re-uploading with the
+    // same name 500s with a PG::UniqueViolation rather than re-rendering the
+    // form. Treat 500 as "probably a duplicate name" — the caller will retry
+    // with a numeric suffix.
+    if (r.status === 500) return { kind: 'duplicate' };
+
+    if (!r.ok) {
+      const body = await r.text().catch(() => '');
+      throw new Error(`HTTP ${r.status}: ${body.slice(0, 200) || r.statusText}`);
+    }
+
+    // Standard post/redirect/get on success; no redirect = form re-rendered
+    // with validation errors.
+    if (!r.redirected) {
+      const html = await r.text().catch(() => '');
+      return { kind: 'rejected', message: extractFormError(html) };
+    }
+    return { kind: 'ok', finalUrl: r.url };
+  }
+
   async function doUpload() {
     if (!formCache) {
       setStatus('Form not loaded — close and reopen.', 'err');
@@ -169,47 +209,51 @@ if (TRMNL_UPLOAD_ENABLED) {
       return;
     }
     const label = els.label.value.trim();
-    const name = els.name.value.trim();
+    const baseName = els.name.value.trim();
     const modelId = els.modelSelect.value;
-    if (!label || !name || !modelId) {
+    if (!label || !baseName || !modelId) {
       setStatus('Label, name, and model are all required.', 'err');
       return;
     }
     els.uploadBtn.disabled = true;
     setStatus('Uploading…', 'info');
 
-    const fd = new FormData();
-    fd.append('_csrf_token', formCache.csrfToken);
-    fd.append('screen[label]', label);
-    fd.append('screen[name]', name);
-    fd.append('screen[model_id]', modelId);
-    fd.append('screen[image]', bmpBlob, safeFilename(name));
-
+    // The (model_id, name) UNIQUE index in Terminus collides whenever we
+    // upload an image with a filename that's been used before. Auto-suffix
+    // on collision so the batch flow ("design → upload, design → upload")
+    // doesn't get stuck the moment a name repeats. A handful of retries is
+    // more than enough for any realistic naming pattern.
+    let name = baseName;
+    let attempt = 0;
+    const MAX_ATTEMPTS = 6;
     try {
-      const r = await fetch('/screens', {
-        method: 'POST',
-        body: fd,
-        credentials: 'include',
-        // Hanami responds with a 302 to /screens/:id on success; let the
-        // browser follow it so r.ok reflects the final page.
-        redirect: 'follow',
-      });
-      if (!r.ok) {
-        const body = await r.text().catch(() => '');
-        throw new Error(`HTTP ${r.status}: ${body.slice(0, 200) || r.statusText}`);
-      }
-      // Hanami's POST /screens follows the standard post/redirect/get pattern:
-      // a 302 on success (Response.redirected === true), a 200 with the form
-      // re-rendered on validation failure (no redirect). We can't rely on the
-      // final URL alone — Terminus redirects to /screens (the index) on
-      // success, not /screens/<id>, which collides with the URL the form
-      // re-renders at. r.redirected is the only unambiguous signal.
-      if (!r.redirected) {
-        const html = await r.text().catch(() => '');
-        throw new Error(extractFormError(html));
+      while (true) {
+        attempt += 1;
+        if (attempt > 1) {
+          name = `${baseName}-${attempt}`;
+          setStatus(`Name "${baseName}" exists — retrying as "${name}"…`, 'info');
+        }
+        const result = await postScreen({ label, name, modelId });
+        if (result.kind === 'ok') break;
+        if (result.kind === 'rejected') {
+          throw new Error(result.message);
+        }
+        if (result.kind === 'duplicate' && attempt < MAX_ATTEMPTS) {
+          // Hanami may rotate CSRF on each submit — refresh before retrying.
+          try { formCache = await fetchFormData(); } catch (_) { /* surface on next */ }
+          continue;
+        }
+        if (result.kind === 'duplicate') {
+          throw new Error(`Tried "${baseName}" through "${name}" — all duplicates. Pick a different base name.`);
+        }
       }
       savePrefs({ modelId });
-      setStatus(`Uploaded "${label}" ✓`, 'ok');
+      setStatus(
+        attempt === 1
+          ? `Uploaded "${label}" ✓`
+          : `Uploaded "${label}" as "${name}" ✓`,
+        'ok',
+      );
       // Refresh CSRF for the next submit; some Hanami setups rotate it after
       // each form post.
       try { formCache = await fetchFormData(); } catch (_) { /* will surface on next click */ }
