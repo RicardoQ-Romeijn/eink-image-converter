@@ -85,6 +85,37 @@ if (TRMNL_UPLOAD_ENABLED) {
     return (stem || 'image') + '.bmp';
   }
 
+  // Best-effort extraction of validation messages from the form page Hanami
+  // re-renders on POST failure. We don't know Terminus's exact error markup,
+  // so try a handful of common patterns and fall back to a body-text snippet.
+  function extractFormError(html) {
+    if (!html) return 'Form rejected (empty response body).';
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const selectors = [
+      '.flash--error', '.flash-error', '.flash.error',
+      '.error-message', '.errors li', '.field-error',
+      'span.error', 'div.error', 'p.error',
+      '[role="alert"]',
+    ];
+    const messages = new Set();
+    for (const sel of selectors) {
+      for (const el of doc.querySelectorAll(sel)) {
+        const t = el.textContent.replace(/\s+/g, ' ').trim();
+        if (t) messages.add(t);
+      }
+    }
+    if (messages.size > 0) {
+      return 'Server rejected: ' + Array.from(messages).slice(0, 3).join('; ');
+    }
+    // Nothing matched — surface the page title + a body snippet so the user
+    // has something concrete to grep server logs for.
+    const title = doc.querySelector('title');
+    const body = doc.body;
+    const titleText = title ? title.textContent.trim() : '';
+    const bodyText = body ? body.textContent.replace(/\s+/g, ' ').trim().slice(0, 250) : '';
+    return `Server rejected (no recognised error markup). Title: "${titleText}". Body: "${bodyText}…"`;
+  }
+
   let els = null;
 
   function setStatus(msg, kind /* 'info' | 'ok' | 'err' */) {
@@ -169,9 +200,13 @@ if (TRMNL_UPLOAD_ENABLED) {
       }
       // On validation failure Hanami re-renders /screens with errors inline
       // (still 200 OK), so r.ok alone isn't proof. The success path redirects
-      // to /screens/<id>; if we're still on /screens, treat it as a failure.
+      // to /screens/<id>; if we're still on /screens, the form came back —
+      // pull the actual error out of the response HTML so the user sees what
+      // Terminus rejected (duplicate name, missing model, etc.) instead of a
+      // generic "validation failed" line.
       if (!/\/screens\/\d+(?:[/?#].*)?$/.test(new URL(r.url).pathname)) {
-        throw new Error('Server returned the form page back — likely a validation error. Try a different name?');
+        const html = await r.text().catch(() => '');
+        throw new Error(extractFormError(html));
       }
       savePrefs({ modelId });
       setStatus(`Uploaded "${label}" ✓`, 'ok');
