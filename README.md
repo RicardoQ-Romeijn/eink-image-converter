@@ -2,17 +2,17 @@
 
 A browser-based image converter for e-paper / e-ink displays. Drop or paste images, compose multiple layers, dither, and export a BMP that drops straight onto the device.
 
-> **Live tool:** _(coming soon — GitHub Pages link goes here)_
+> **Live tool:** <https://ricardoq-romeijn.github.io/eink-image-converter/>
 
 ## Fully local · zero data collection
 
 Everything happens **inside your browser tab**.
 
-- 🚫 **Nothing is uploaded.** Images you drop, paste, or pick stay on your machine — they're handled with `URL.createObjectURL` blob URLs and never travel over the network.
-- 🚫 **No telemetry, no analytics, no tracking, no cookies.** The tool makes zero outbound requests of any kind. There is no backend.
-- 🚫 **No accounts, no sign-up.** Open the file, use it, close the tab. That's the entire lifecycle.
-- 💾 **Settings only**, stored in your browser's `localStorage` on your own device, so your dither choice / display preset / etc. survive a reload. **Layers are not persisted.** Clearing your browser data removes them.
-- 📜 **Source is open** ([MIT](LICENSE)) — every line that runs is in this repo. You can read it, fork it, audit it, host it yourself.
+- **Nothing is uploaded.** Images you drop, paste, or pick stay on your machine — they're handled with `URL.createObjectURL` blob URLs and never travel over the network.
+- **No telemetry, no analytics, no tracking, no cookies.** The tool makes zero outbound requests of any kind. There is no backend.
+- **No accounts, no sign-up.** Open the file, use it, close the tab. That's the entire lifecycle.
+- **Settings only**, stored in your browser's `localStorage` on your own device, so your dither choice / display preset / etc. survive a reload. **Layers are not persisted.** Clearing your browser data removes them.
+- **Source is open** ([MIT](LICENSE)) — every line that runs is in this repo. You can read it, fork it, audit it, host it yourself.
 
 If you'd rather not trust *any* hosted copy, clone the repo and double-click `index.html` — you don't even need a network connection after that.
 
@@ -56,28 +56,6 @@ The BMP output is standard, so it should work with anything that ingests BMPs. T
 - **Waveshare 5.65" 7-color** (and the 4.01" 7-color) — 24-bit BMP.
 - **Waveshare tri-color panels** (7.5" V2 B+W+R, 4.2" V2 B+W+R, 2.13" V3 B+W+Y, …) — 4-bit indexed BMP.
 - Most plain monochrome e-paper modules (1.54", 2.13", 2.7", 2.9", 4.2", 5.83", 7.5", 9.7", 10.3", 13.3" Spectra 6) via the size-preset list.
-
-## Run it locally
-
-```sh
-git clone https://github.com/<your-username>/eink-image-converter.git
-cd eink-image-converter
-# macOS / Linux
-open index.html
-# Windows
-start index.html
-```
-
-No build step, no `npm install`, no dev server. Works offline once cloned.
-
-## Host your own copy on GitHub Pages
-
-1. Push the repo to your GitHub.
-2. **Settings → Pages.**
-3. Source: **Deploy from a branch**, branch: **main**, folder: **/** (root).
-4. ~30 seconds later it's live at `https://<your-username>.github.io/eink-image-converter/`.
-
-No CI/CD needed — GitHub Pages serves `index.html` directly. Same privacy guarantees apply: a fork on GitHub Pages doesn't add any tracking; what you see in the source is exactly what runs.
 
 ## License
 
