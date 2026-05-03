@@ -198,13 +198,13 @@ if (TRMNL_UPLOAD_ENABLED) {
         const body = await r.text().catch(() => '');
         throw new Error(`HTTP ${r.status}: ${body.slice(0, 200) || r.statusText}`);
       }
-      // On validation failure Hanami re-renders /screens with errors inline
-      // (still 200 OK), so r.ok alone isn't proof. The success path redirects
-      // to /screens/<id>; if we're still on /screens, the form came back —
-      // pull the actual error out of the response HTML so the user sees what
-      // Terminus rejected (duplicate name, missing model, etc.) instead of a
-      // generic "validation failed" line.
-      if (!/\/screens\/\d+(?:[/?#].*)?$/.test(new URL(r.url).pathname)) {
+      // Hanami's POST /screens follows the standard post/redirect/get pattern:
+      // a 302 on success (Response.redirected === true), a 200 with the form
+      // re-rendered on validation failure (no redirect). We can't rely on the
+      // final URL alone — Terminus redirects to /screens (the index) on
+      // success, not /screens/<id>, which collides with the URL the form
+      // re-renders at. r.redirected is the only unambiguous signal.
+      if (!r.redirected) {
         const html = await r.text().catch(() => '');
         throw new Error(extractFormError(html));
       }
